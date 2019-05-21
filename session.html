@@ -6,8 +6,10 @@
 
 	<body>
 		<h1>
-			{{range .Session_Code}}
-				&#{{.}};
+			<p>Current Session:</p>
+			{{.curSession}}
+			<p>Current Users:</p>
+			{{range .users}}
 			{{end}}
 		</h1>
 	</body>

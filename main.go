@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/zmb3/spotify"
 	"html/template"
 	"log"
 	"math/rand"
 	"net/http"
 	"os"
+
+	"github.com/zmb3/spotify"
 )
 
 // 128513-128591
@@ -18,6 +19,11 @@ type Session struct {
 
 type Index_Context struct {
 	LoginUrl string
+}
+
+type Client struct {
+	client    spotify.Client
+	logged_in bool
 }
 
 var live_sessions []Session
@@ -31,8 +37,7 @@ var (
 )
 
 var (
-	client    spotify.Client
-	logged_in = false
+	clients []Client
 )
 
 func generate_session_code() [3]int {
@@ -76,48 +81,106 @@ func authenticate(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("State mismatch: %s != %s\n", st, state)
 	}
 	// use the token to get an authenticated client
-	client = auth.NewClient(tok)
-	logged_in = true
+	clients = append(clients, Client{auth.NewClient(tok), true})
 
-	fmt.Println("Logged In!")
-	http.Redirect(w, r, "http://11155126.ngrok.io/sessions", 303)
+	log.Println("Logged In!")
+	http.Redirect(w, r, "http://11155126.ngrok.io/joinSession", 303)
 }
 
 func joinSession(w http.ResponseWriter, r *http.Request) {
+	var session_code [3]int
+	session_code = []int(r.FormValue(sessionCode))
+
+	// Check if session exists
+	valid := false
+	for _, sess := range live_sessions {
+		if session_code == sess.Session_Code {
+			valid = true
+			break
+		}
+	}
+	if !valid {
+		log.Printf("Session %v not found", session_code)
+		return
+	}
+	log.Printf("User %s joining session %s", clients[0].client.CurrentUser().DisplayName, session_code)
+	var templateData = struct {
+		curSession [3]int
+		users      []string
+	}{}
+	templateData.curSession = session_code
+	for _, i := range clients {
+		templateData.users = append(templateData.users, i.client.CurrentUser().DisplayName)
+	}
+
+	t, _ := template.ParseFiles("session.html")
+	t.Execute(w, &templateData)
 
 }
 
 func session(w http.ResponseWriter, r *http.Request) {
-	// Session Page:
-	//	- Session Code
-	//	- Change Session Button
-	if !logged_in {
+	if !client[0].logged_in {
 		http.Redirect(w, r, "http://11155126.ngrok.io", 307)
 		return
 	}
 
-	fmt.Println(live_sessions)
+	session_code := r.Form.Get(sessionCode)
 
-	session_code := generate_session_code()
-
-	for _, code := range session_code {
-		fmt.Println(code)
+	var templateData = struct {
+		curSession [3]int
+		users      []string
+	}{}
+	templateData.curSession = session_code
+	for _, i := range clients {
+		templateData.users = append(templateData.users, i.client.CurrentUser().DisplayName)
 	}
 
 	t, _ := template.ParseFiles("session.html")
-	t.Execute(w, Session{Session_Code: session_code})
+	t.Execute(w, &templateData)
 
-	err := client.Play()
+	err := clients[0].client.Play()
 	if err != nil {
 		log.Print(err)
 	}
 
-	player, err := client.PlayerCurrentlyPlaying()
+	player, err := clients[0].client.PlayerCurrentlyPlaying()
 	if err != nil {
 		log.Print(err)
 		return
 	}
-	fmt.Println(player)
+	log.Println(player)
+}
+
+func newSession(w http.ResponseWriter, r *http.Request) {
+	// Session Page:
+	//	- Session Code
+	//	- Change Session Button
+	if !client[0].logged_in {
+		http.Redirect(w, r, "http://11155126.ngrok.io", 307)
+		return
+	}
+
+	log.Println(live_sessions)
+
+	session_code := generate_session_code()
+
+	for _, code := range session_code {
+		log.Println(code)
+	}
+	url := fmt.Sprintf("http://11155126.ngrok.io/session?sessionCode=%v", session_code)
+	http.Redirect(w, r, url, 307)
+
+	/*err := clients[0].client.Play()
+	if err != nil {
+		log.Print(err)
+	}
+
+	player, err := clients[0].client.PlayerCurrentlyPlaying()
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	log.Println(player)*/
 }
 
 func main() {
@@ -127,7 +190,8 @@ func main() {
 	auth = spotify.NewAuthenticator(redirectURI, spotify.ScopeUserReadCurrentlyPlaying, spotify.ScopeUserReadPlaybackState, spotify.ScopeUserModifyPlaybackState)
 
 	http.HandleFunc("/callback", authenticate)
-	http.HandleFunc("/sessions", session)
+	http.HandleFunc("/newSession", newSession)
+	http.HandleFunc("/joinSession", joinSession)
 	http.HandleFunc("/", index)
 
 	go http.ListenAndServe(":8888", nil)
