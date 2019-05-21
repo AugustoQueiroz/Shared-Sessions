@@ -1,13 +1,13 @@
 package main
 
 import (
-	"os"
 	"fmt"
-	"log"
-	"net/http"
-	"math/rand"
-	"html/template"
 	"github.com/zmb3/spotify"
+	"html/template"
+	"log"
+	"math/rand"
+	"net/http"
+	"os"
 )
 
 // 128513-128591
@@ -22,7 +22,7 @@ type Index_Context struct {
 
 var live_sessions []Session
 
-const redirectURI = "http://localhost:8888/callback"
+const redirectURI = "http://11155126.ngrok.io/callback"
 
 var (
 	auth  = spotify.NewAuthenticator(redirectURI, spotify.ScopeUserReadCurrentlyPlaying, spotify.ScopeUserReadPlaybackState, spotify.ScopeUserModifyPlaybackState)
@@ -31,10 +31,9 @@ var (
 )
 
 var (
-	client spotify.Client
+	client    spotify.Client
 	logged_in = false
 )
-
 
 func generate_session_code() [3]int {
 	// Generates a random session code and checks that it's not being used
@@ -81,7 +80,11 @@ func authenticate(w http.ResponseWriter, r *http.Request) {
 	logged_in = true
 
 	fmt.Println("Logged In!")
-	http.Redirect(w, r, "http://localhost:8888/sessions", 303)
+	http.Redirect(w, r, "http://11155126.ngrok.io/sessions", 303)
+}
+
+func joinSession(w http.ResponseWriter, r *http.Request) {
+
 }
 
 func session(w http.ResponseWriter, r *http.Request) {
@@ -89,7 +92,7 @@ func session(w http.ResponseWriter, r *http.Request) {
 	//	- Session Code
 	//	- Change Session Button
 	if !logged_in {
-		http.Redirect(w, r, "http://localhost:8888", 307)
+		http.Redirect(w, r, "http://11155126.ngrok.io", 307)
 		return
 	}
 
@@ -101,13 +104,13 @@ func session(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(code)
 	}
 
-    t, _ := template.ParseFiles("session.html")
-    t.Execute(w, Session{Session_Code: session_code})
+	t, _ := template.ParseFiles("session.html")
+	t.Execute(w, Session{Session_Code: session_code})
 
-    err := client.Play()
-    if err != nil {
-    	log.Print(err)
-    }
+	err := client.Play()
+	if err != nil {
+		log.Print(err)
+	}
 
 	player, err := client.PlayerCurrentlyPlaying()
 	if err != nil {
@@ -121,12 +124,12 @@ func main() {
 	os.Setenv("SPOTIFY_ID", "6e5bf9d9b01a4232a2f9d3b666a714b6")
 	os.Setenv("SPOTIFY_SECRET", "d745ad859b08470e95e423ad94940379")
 
-	auth  = spotify.NewAuthenticator(redirectURI, spotify.ScopeUserReadCurrentlyPlaying, spotify.ScopeUserReadPlaybackState, spotify.ScopeUserModifyPlaybackState)
+	auth = spotify.NewAuthenticator(redirectURI, spotify.ScopeUserReadCurrentlyPlaying, spotify.ScopeUserReadPlaybackState, spotify.ScopeUserModifyPlaybackState)
 
 	http.HandleFunc("/callback", authenticate)
 	http.HandleFunc("/sessions", session)
 	http.HandleFunc("/", index)
-	
+
 	go http.ListenAndServe(":8888", nil)
 
 	select {}
