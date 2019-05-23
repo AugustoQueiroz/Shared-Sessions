@@ -89,6 +89,7 @@ func authenticate(w http.ResponseWriter, r *http.Request) {
 
 func joinSession(w http.ResponseWriter, r *http.Request) {
 	var session_code [3]int
+	s := r.FormValue(sessionCode)
 	session_code = []int(r.FormValue(sessionCode))
 
 	// Check if session exists
