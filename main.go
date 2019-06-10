@@ -6,8 +6,8 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"os"
 
+	"github.com/spf13/viper"
 	"github.com/zmb3/spotify"
 )
 
@@ -185,8 +185,7 @@ func newSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	os.Setenv("SPOTIFY_ID", "6e5bf9d9b01a4232a2f9d3b666a714b6")
-	os.Setenv("SPOTIFY_SECRET", "d745ad859b08470e95e423ad94940379")
+	viper.AutomaticEnv()
 
 	auth = spotify.NewAuthenticator(redirectURI, spotify.ScopeUserReadCurrentlyPlaying, spotify.ScopeUserReadPlaybackState, spotify.ScopeUserModifyPlaybackState)
 
