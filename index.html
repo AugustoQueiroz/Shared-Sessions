@@ -2,6 +2,30 @@
 <html>
 	<head>
 		<title>Joint Sessions</title>
+
+		<script type="text/javascript">
+			var serverSocket = new WebSocket("ws://localhost:8888/ws")
+			var buffer = []
+
+			if (window.localStorage) {
+				var spotifyToken = window.localStorage.getItem("spotifyToken")
+
+				if (spotifyToken != null) {
+					buffer.push(spotifyToken)
+				} else {
+
+				}
+			} else {
+				
+			}
+
+			serverSocket.onopen = function() {
+				for (message in buffer) {
+					serverSocket.send(buffer[message])
+					console.log(buffer[message])
+				}
+			}
+		</script>
 	</head>
 
 	<body>
