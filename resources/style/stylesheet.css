@@ -1,0 +1,57 @@
+@import url('https://fonts.googleapis.com/css?family=Assistant:800|Work+Sans&display=swap');
+
+body {
+    background-color: #1DB954;
+    color: #ffffff;
+    overflow: hidden;
+}
+
+h1, h2 {
+    font-family: "Assistant", sans-serif;
+}
+
+#background-image {
+    width: 100vw;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    opacity: 0.8;
+}
+
+#name {
+    font-size: 50pt;
+    position: absolute;
+    top: -10px;
+    right: 50px;
+}
+
+#main-content {
+    text-align: center;
+    position: absolute;
+    margin: 0;
+    top: 40%;
+    left: 50%;
+    -ms-transform: translateY(-50%);
+    transform: translateY(-50%);
+    -ms-transform: translateX(-50%);
+    transform: translateX(-50%);
+}
+
+#tagline {
+    font-size: 30pt;
+}
+
+#loginLink {
+    font-family: "Work Sans", sans-serif;
+    font-size: 15pt;
+    background-color: #1DB954;
+    border-radius: 50px;
+    padding: 10px 30px;
+
+    width: auto;
+    display: inline-block;
+
+    color: #ffffff;
+    text-decoration: none;
+}
