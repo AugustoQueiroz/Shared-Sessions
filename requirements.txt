@@ -1,0 +1,4 @@
+Flask==1.0.3
+spotipy==2.4.4
+Pyrebase==3.0.27
+python-dotenv==0.10.3
