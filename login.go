@@ -7,86 +7,100 @@ package main
 // them to the next service
 
 import (
-    // Standard Packages
-    "fmt"
-    "log"
-    "net/http"
-    "html/template"
+	// Standard Packages
 
-    // External Packages
-    "golang.org/x/oauth2"
-    "github.com/zmb3/spotify"
-    "github.com/gorilla/websocket"
+	"context"
+	"html/template"
+	"log"
+	"net/http"
+
+	// External Packages
+	firebase "firebase.google.com/go"
+	"github.com/gorilla/mux"
+	"github.com/zmb3/spotify"
+	"golang.org/x/oauth2"
 )
 
+// User Struct representing a user
 type User struct {
-    Token       oauth2.Token
-    Client      spotify.Client
-    LoggedIn    bool
+	Token oauth2.Token `json:"token"`
+	Room  string       `json:"room"`
 }
+
+// LoginContext Struct with the context for the login page
+type LoginContext struct {
+	LoginURL string
+}
+
+var redirectURI = "http://localhost:8888/callback"
 
 var (
-    clients = make(map[*websocket.Conn]bool)
-    authenticator       spotify.Authenticator
+	authenticator spotify.Authenticator
+	state         = "abc123"
 )
 
-var upgrader = websocket.Upgrader{
-    ReadBufferSize:  1024,
-    WriteBufferSize: 1024,
-}
-
 func serveLogin(w http.ResponseWriter, r *http.Request) {
-    url := auth.AuthURL(state)
+	url := authenticator.AuthURL(state)
 
-    t, _ := template.ParseFiles("index.html")
-    t.Execute(w, Index_Context{LoginUrl: url})
+	t, _ := template.ParseFiles("index.html")
+	t.Execute(w, LoginContext{LoginURL: url})
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
-    _, err := authenticator.Token(state, r)
-    if err != nil {
-        log.Fatal("Error trying to authenticate user:", err)
-    }
+	token, err := authenticator.Token(state, r)
+	if err != nil {
+		log.Fatal("Error trying to authenticate user:", err)
+	}
 
-    if st := r.FormValue("state"); st != state {
-        log.Fatal("State mismatch: %s != %s\n", st, state)
-    }
+	if st := r.FormValue("state"); st != state {
+		log.Fatal("State mismatch: %s != %s\n", st, state)
+	}
 
-    log.Println("Logged In!")
-    http.Redirect(w, r, "http://localhost:8888/sessions", 303)
+	user := User{*token, ""}
+	userID := getUserID(user)
+	log.Println(userID)
+	saveNewUser(userID, user)
+
+	log.Println("Logged In!")
+	http.Redirect(w, r, "http://localhost:8888/sessions", 303)
 }
 
-func webSocketConnect(w http.ResponseWriter, r *http.Request) {
-    ws, err := upgrader.Upgrade(w, r, nil)
-    if err != nil {
-        log.Fatal(err)
-    }
+func getUserID(user User) string {
+	client := authenticator.NewClient(&user.Token)
+	currentUser, err := client.CurrentUser()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    // register client
-    clients[ws] = true
-    go webSocketHandler(ws)
+	return currentUser.ID
 }
 
-func webSocketHandler(connection *websocket.Conn) {
-    for {
-        _, messageBody, err := connection.ReadMessage()
-        if err != nil {
-            log.Fatal(err)
-        }
+func saveNewUser(userID string, user User) {
+	app, err := firebase.NewApp(context.Background(), nil)
+	if err != nil {
+		log.Fatalf("error initializing app: %v\n", err)
+	}
 
-        fmt.Printf("%s\n", messageBody)
-    }
+	dbClient, err := app.DatabaseWithURL(context.Background(), "https://sharedsessions-c125b.firebaseio.com/")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ref := dbClient.NewRef("/users/" + userID)
+
+	ref.Set(context.Background(), user)
 }
 
 func main() {
-    auth = spotify.NewAuthenticator(redirectURI,
-                                    spotify.ScopeUserReadCurrentlyPlaying,
-                                    spotify.ScopeUserReadPlaybackState,
-                                    spotify.ScopeUserModifyPlaybackState)
+	authenticator = spotify.NewAuthenticator(redirectURI,
+		spotify.ScopeUserReadCurrentlyPlaying,
+		spotify.ScopeUserReadPlaybackState,
+		spotify.ScopeUserModifyPlaybackState)
 
-    http.HandleFunc("/callback", login)
-    http.HandleFunc("/ws", webSocketConnect)
-    http.HandleFunc("/", serveLogin)
+	router := mux.NewRouter()
 
-    http.ListenAndServe(":8888", nil)
+	router.HandleFunc("/callback", login)
+	router.HandleFunc("/", serveLogin)
+
+	http.ListenAndServe(":8888", router)
 }
