@@ -40,9 +40,11 @@ var (
 )
 
 func serveLogin(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
 	url := authenticator.AuthURL(state)
 
-	t, _ := template.ParseFiles("index.html")
+	t, _ := template.ParseFiles("resources/index.html", "resources/style/stylesheet.css")
 	t.Execute(w, LoginContext{LoginURL: url})
 }
 
@@ -101,6 +103,9 @@ func main() {
 
 	router.HandleFunc("/callback", login)
 	router.HandleFunc("/", serveLogin)
+
+	resourcesFileServer := http.FileServer(http.Dir("resources/"))
+	router.PathPrefix("/resources/").Handler(http.StripPrefix("/resources", resourcesFileServer))
 
 	http.ListenAndServe(":8888", router)
 }
