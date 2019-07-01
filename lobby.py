@@ -46,10 +46,9 @@ def user_in():
 
 
 @app.route("/joinSession/", methods=["GET", "POST"])
-@app.route("/joinSession/<session_id>", methods=["GET", "POST"])
-@app.route("/joinSession/<session_id>/", methods=["GET", "POST"])
-def join_session(session_id=None):  # TODO: update user room with newly joined room
-    if not session_id:
+def join_session():  # TODO: update user room with newly joined room
+    session_id = request.args.get("sessionCode", "")
+    if session_id == "":
         result = {"sucess": False, "error": "Empty session_id"}
         return json.dumps(result)
 
