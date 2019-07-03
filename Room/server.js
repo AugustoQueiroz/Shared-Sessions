@@ -17,7 +17,7 @@ var defaultProj = firebase.initializeApp(firebaseConfig);
 
 var database = firebase.database();
 
-var master = {};
+var payload = {};
 
 var intervalId = setInterval(function () {
   database.ref('rooms/' + roomToken).once('value').then(function (snap) {
@@ -27,25 +27,46 @@ var intervalId = setInterval(function () {
       clientId: '32cca9f1a35c44d4bed142d7fe78a3a8'
     })
     //console.log(tokens[0]);
-  
-    for (i = 0; i < tokens.length; i++) {
-  
+    spotifyApi.setAccessToken(tokens[0]);
+    spotifyApi.getMyCurrentPlaybackState({
+    })
+      .then(function (data) {
+        // Output items
+        console.log(data.body.item);
+        console.log(data.body.progress_ms);
+
+        console.log("Now Playing: ", data.body);
+        payload = {
+          "context_uri": data.body.item.uri,
+          "offset": {
+            "position": data.body.item.track_number
+          },
+          "position_ms": data.body.progress_ms
+        };
+      },function (err) {
+        console.log('Something went wrong!', err);
+      });
+    for (i = 1; i < tokens.length; i++) {
+
       spotifyApi.setAccessToken(tokens[i]);
       spotifyApi.getMyCurrentPlaybackState({
       })
         .then(function (data) {
           // Output items
-          console.log(data.body.item.uri);
+          console.log(data.body.item);
           console.log(data.body.progress_ms);
 
           console.log("Now Playing: ", data.body);
-          const payload = {
+          /*payload = {
             "context_uri": "spotify:album:5ht7ItJgpBH7W6vJ5BqpPr",
             "offset": {
               "position": 6
             },
             "position_ms": 20000
-          };
+          };*/
+          if(data.body.item.uri != payload["context_uri"]){
+
+          
           spotifyApi.play(payload)//({context_uri:'spotify:track:0CZ8lquoTX2Dkg7Ak2inwA',offset:5, position_ms:'199978'})
             .then(function (yay) {
               //whatever
@@ -53,6 +74,7 @@ var intervalId = setInterval(function () {
             }, function (err) {
               console.log(err);
             });
+          }
         }, function (err) {
           console.log('Something went wrong!', err);
         });
