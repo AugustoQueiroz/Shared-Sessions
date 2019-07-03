@@ -36,7 +36,7 @@ def user_in():
 
 
 @app.route("/joinSession/", methods=["GET", "POST"])
-def join_session():  # TODO: update user room with newly joined room
+def join_session():
 
     user_id = request.args.get("user_id", "")
     if user_id == "":
@@ -53,8 +53,9 @@ def join_session():  # TODO: update user room with newly joined room
     for room in rooms.each():
         if room.key() == session_id:
             result = room.val()
-            result["users"].append(100)  # TODO: swap to user_id later
+            result["users"].append(int(user_id))
             db.child("rooms").child(room.key()).update(result)
+            db.child("users").child(int(user_id)).update({"room": room.key()})
             return json.dumps(result)  # TODO: redirect to the room
     else:
         result = {"sucess": False, "error": "Room not found"}
@@ -62,7 +63,7 @@ def join_session():  # TODO: update user room with newly joined room
 
 
 @app.route("/newSession/", methods=["GET", "POST"])
-def new_session():  # TODO: update user room with newly created room
+def new_session():
 
     user_id = request.args.get("user_id", "")
     if user_id == "":
