@@ -49,10 +49,16 @@ database.ref('rooms/' + roomToken).once('value').then(function(snap) {
     console.log(data.body.progress_ms);
 
     console.log("Now Playing: ",data.body);
-    var payload = {'context_uri':'spotify:track:0CZ8lquoTX2Dkg7Ak2inwA'};
+    const payload = {"context_uri": "spotify:album:5ht7ItJgpBH7W6vJ5BqpPr",
+    "offset": {
+      "position": 4
+    },
+    "position_ms": 20000
+  };
     spotifyApi.play(payload)//({context_uri:'spotify:track:0CZ8lquoTX2Dkg7Ak2inwA',offset:5, position_ms:'199978'})
     .then(function(yay){
       //whatever
+      console.log(yay);
     }, function(err){
       console.log(err);
     });
