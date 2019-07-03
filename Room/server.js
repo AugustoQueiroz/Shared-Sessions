@@ -22,33 +22,46 @@ var payload = {};
 var intervalId = setInterval(function () {
   database.ref('rooms/' + roomToken).once('value').then(function (snap) {
     tokens = snap.val().users;
-    var spotifyApi = new SpotifyWebApi({
-      redirectUri: '0.0.0.0:8000',
-      clientId: '32cca9f1a35c44d4bed142d7fe78a3a8'
-    })
-    //console.log(tokens[0]);
-    spotifyApi.setAccessToken(tokens[0]);
-    spotifyApi.getMyCurrentPlaybackState({
-    })
-      .then(function (data) {
-        // Output items
-        console.log(data.body.item);
-        console.log(data.body.progress_ms);
 
-        console.log("Now Playing: ", data.body);
-        payload = {
-          "context_uri": data.body.item.uri,
-          "offset": {
-            "position": data.body.item.track_number
-          },
-          "position_ms": data.body.progress_ms
-        };
-      },function (err) {
-        console.log('Something went wrong!', err);
-      });
+    database.ref('users/' + tokens[0]).once('value').then(function (volta) {
+      //console.log(volta.val());
+      token = volta.val().token.access_token;
+
+
+
+
+      var spotifyApi = new SpotifyWebApi({
+        redirectUri: '0.0.0.0:8000',
+        clientId: '32cca9f1a35c44d4bed142d7fe78a3a8'
+      })
+      //console.log(tokens[0]);
+      spotifyApi.setAccessToken(token);
+      spotifyApi.getMyCurrentPlaybackState({
+      })
+        .then(function (data) {
+          // Output items
+          console.log(data.body.item);
+          console.log(data.body.progress_ms);
+
+          console.log("Now Playing: ", data.body);
+          payload = {
+            "context_uri": data.body.item.uri,
+            "offset": {
+              "position": data.body.item.track_number
+            },
+            "position_ms": data.body.progress_ms
+          };
+        }, function (err) {
+          console.log('Something went wrong!', err);
+        });
+    }, function (err) { console.log(err) });
+
+
+
     for (i = 1; i < tokens.length; i++) {
-
-      spotifyApi.setAccessToken(tokens[i]);
+       database.ref('users/' + tokens[i]).once('value').then(function (volta) {
+      token = volta.val().token.access_token;
+      spotifyApi.setAccessToken(token);
       spotifyApi.getMyCurrentPlaybackState({
       })
         .then(function (data) {
@@ -64,21 +77,25 @@ var intervalId = setInterval(function () {
             },
             "position_ms": 20000
           };*/
-          if(data.body.item.uri != payload["context_uri"]){
+          if (data.body.item.uri != payload["context_uri"]) {
 
-          
-          spotifyApi.play(payload)//({context_uri:'spotify:track:0CZ8lquoTX2Dkg7Ak2inwA',offset:5, position_ms:'199978'})
-            .then(function (yay) {
-              //whatever
-              console.log(yay);
-            }, function (err) {
-              console.log(err);
-            });
+
+            spotifyApi.play(payload)//({context_uri:'spotify:track:0CZ8lquoTX2Dkg7Ak2inwA',offset:5, position_ms:'199978'})
+              .then(function (yay) {
+                //whatever
+                console.log(yay);
+              }, function (err) {
+                console.log(err);
+              });
           }
         }, function (err) {
           console.log('Something went wrong!', err);
         });
+      }, function(err){console.log(err)});
     }
+  
+
+
 
   });
 }, 5000);
