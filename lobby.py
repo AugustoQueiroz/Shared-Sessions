@@ -53,8 +53,6 @@ def join_session():  # TODO: update user room with newly joined room
     for room in rooms.each():
         if room.key() == session_id:
             result = room.val()
-            print(result)
-            print(type(result))
             result["users"].append(100)  # TODO: swap to user_id later
             db.child("rooms").child(room.key()).update(result)
             return json.dumps(result)  # TODO: redirect to the room
@@ -66,15 +64,23 @@ def join_session():  # TODO: update user room with newly joined room
 @app.route("/newSession/", methods=["GET", "POST"])
 def new_session():  # TODO: update user room with newly created room
 
+    user_id = request.args.get("user_id", "")
+    if user_id == "":
+        result = {"sucess": False, "error": "Empty user_id"}
+        return json.dumps(result)
+
     db = fb.database()
     rooms = db.child("rooms").shallow().get()
     rooms_list = list(rooms.val())
-    user = {"users": [75, 6543, 765]}
+    user = {"users": [int(user_id)]}
+    session = 0
     while True:
         session = random.randint(1, 1000)  # behold, the might session generator
         if session not in rooms_list:
             db.child("rooms").child(session).set(user)
             break
+
+    db.child("users").child(int(user_id)).update({"room": session})
 
     return "hi"  # TODO: create and redirect room
 
