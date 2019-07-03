@@ -1,6 +1,0 @@
-FROM golang:1.11-alpine AS build
-
-USER root
-
-
-CMD ["echo 'Hello!'"]
